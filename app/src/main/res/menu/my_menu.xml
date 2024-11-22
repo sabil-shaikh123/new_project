@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="CREATE ACC"
+        android:id="@+id/createacc"
+        />
+
+
+    <item android:title="APP INFO"
+        android:id="@+id/appinfo"
+        />
+
+
+    <item android:title="Forgot passowrd"
+            android:id="@+id/forpass"
+        />
+</menu>

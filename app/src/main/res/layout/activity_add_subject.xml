@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:id="@+id/main"
+    android:padding="16dp">
+
+
+    <!-- Subject Name Input -->
+
+    <!-- Subject Code Input (Unique Identifier) -->
+    <EditText
+        android:id="@+id/editTextSubjectName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Subject Name"
+        android:inputType="text"
+        android:minHeight="48dp" />
+
+    <EditText
+        android:id="@+id/editTextSubjectCode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Subject Code (Unique)"
+        android:inputType="text"
+        android:minHeight="48dp" />
+
+    <!-- Save Button -->
+    <Button
+        android:id="@+id/buttonSaveSubject"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save Subject"
+        android:layout_marginTop="20dp"/>
+</LinearLayout>
