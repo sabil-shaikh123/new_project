@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:paddingTop="20dp"
-    android:paddingLeft="20dp"
+    android:paddingLeft="60dp"
     tools:context=".Teacher">
 
     <!-- Teacher's Name and USN -->

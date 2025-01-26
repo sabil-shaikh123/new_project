@@ -33,7 +33,7 @@ public class Teacher extends AppCompatActivity {
 
     private static final int REQUEST_ADD_SUBJECT = 1;
     private TextView tvTeacherName, tvTeacherUSN;
-    Button cr_sub, refresh;
+    Button cr_sub;
     private FirebaseFirestore db;
 
     //
@@ -57,7 +57,7 @@ public class Teacher extends AppCompatActivity {
         tvTeacherName = findViewById(R.id.tvTeacherName);
         tvTeacherUSN = findViewById(R.id.tvTeacherUSN);
         cr_sub = findViewById(R.id.buttonAddSubject);
-        refresh = findViewById(R.id.refresh);
+
 
         // Initialize Firestore
         db = FirebaseFirestore.getInstance();
@@ -77,20 +77,16 @@ public class Teacher extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(Teacher.this, add_subject.class);
                 intent.putExtra("teacherEmail", teacherEmail);  // Pass the teacher's email
-                startActivityForResult(intent, REQUEST_ADD_SUBJECT);
-                fetchSubjects(teacherEmail);
-            }
-        });
-        refresh.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                fetchSubjects(teacherEmail);
+                startActivity(intent);
+
+
             }
         });
 
+
         // Check if the email is not null or empty
         if (teacherEmail != null && !teacherEmail.isEmpty()) {
-            fetchSubjects(teacherEmail);  // Load subjects initially
+            fetchSubjectsInRealTime(teacherEmail); // Set up real-time listener for subjects
             // Query Firestore for the document where the email matches
             db.collection("Teacher").whereEqualTo("email", teacherEmail)
                     .get()
@@ -120,17 +116,22 @@ public class Teacher extends AppCompatActivity {
             Toast.makeText(Teacher.this, "Teacher email not provided", Toast.LENGTH_SHORT).show();
         }
 
+
     }
 
 
-    private void fetchSubjects(String teacherEmail) {
-        // Query to find the document by teacher email
+    private void fetchSubjectsInRealTime(String teacherEmail) {
+        // Query to find the document by teacher email and listen for real-time updates
         db.collection("Teacher")
                 .whereEqualTo("email", teacherEmail)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        DocumentSnapshot document = task.getResult().getDocuments().get(0);
+                .addSnapshotListener((querySnapshot, e) -> {
+                    if (e != null) {
+                        Toast.makeText(Teacher.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                        DocumentSnapshot document = querySnapshot.getDocuments().get(0);
 
                         // Check if "subjects" field exists and is an array
                         if (document.contains("subjects")) {
@@ -141,23 +142,15 @@ public class Teacher extends AppCompatActivity {
                                 subjectAdapter.notifyDataSetChanged();
                             }
                         }
-                    } else {
-                        Toast.makeText(Teacher.this, "Failed to fetch subjects", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .addOnFailureListener(e -> Toast.makeText(Teacher.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                });
     }
 
 
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_ADD_SUBJECT && resultCode == RESULT_OK) {
-            // Refresh subjects after returning from add_subject
-            fetchSubjects(teacherEmail);
-        }
-    }
+
+
+
 
 
 

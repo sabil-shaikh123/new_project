@@ -52,10 +52,21 @@
         android:id="@+id/btnlog"
         android:layout_width="116dp"
         android:layout_height="53dp"
-        android:layout_marginBottom="169dp"
+        android:layout_marginBottom="180dp"
         android:text="LOGIN"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.508"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/createacc"
+        android:layout_width="103dp"
+        android:layout_height="42dp"
+        android:layout_marginBottom="24dp"
+        android:text="Create Acc"
+        android:textSize="10sp"
+        app:layout_constraintBottom_toTopOf="@+id/btnlog"
+        app:layout_constraintStart_toStartOf="@+id/btnlog" />
 </androidx.constraintlayout.widget.ConstraintLayout>

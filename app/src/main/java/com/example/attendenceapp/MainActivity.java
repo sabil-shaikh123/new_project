@@ -34,7 +34,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 public class MainActivity extends AppCompatActivity {
     Toolbar toolbar;
     EditText txtemail, txtpass;
-    Button login;
+    Button login , create_acc;
 
     private FirebaseAuth auth;
 
@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
         txtemail = findViewById(R.id.txtemail);
         txtpass = findViewById(R.id.txtpass);
         login = findViewById(R.id.btnlog);
+        create_acc = findViewById(R.id.createacc);
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -70,18 +71,22 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        create_acc.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, create_acc.class);
+                startActivity(intent);
+            }
+        });
 
     }
+
 
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int my_item = item.getItemId();
-        if (my_item == R.id.createacc) {
-            Intent intent = new Intent(MainActivity.this, create_acc.class);
-            startActivity(intent);
 
-        }
         if (my_item == R.id.appinfo) {
 
 
@@ -119,49 +124,73 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    // to check the role using their email and directing to the specific page
     private void checkUserRole(String email) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String pass = txtpass.getText().toString();
 
-        // First check in "Teacher" collection
-        db.collection("Teacher").whereEqualTo("email", email)
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        // First, authenticate the user with Firebase Authentication
+        auth.signInWithEmailAndPassword(email, pass)
+                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                     @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                            // User is a teacher, navigate to Teacher page
-                            String teacherEmail = txtemail.getText().toString();
-                            Toast.makeText(MainActivity.this, "Login as Teacher", Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(MainActivity.this,Teacher.class);// Replace with your Teacher activity
-                            intent.putExtra("email", teacherEmail);
-                            startActivity(intent);
-                            finish();
-                        } else {
-                            // If not in Teacher collection, check in Student collection
-                            db.collection("Student").whereEqualTo("email",email)
-                                    .get()
-                                    .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                            if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                                                // User is a student, navigate to Student page
-                                                String studentEmail = txtemail.getText().toString();
-                                                Toast.makeText(MainActivity.this, "Login as Student", Toast.LENGTH_SHORT).show();
-                                                Intent intent = new Intent(MainActivity.this,Student.class);  // Replace with your Student activity
-                                                intent.putExtra("email", studentEmail);
-                                                startActivity(intent);
-                                                finish();
-                                            } else {
-                                                // Email not found in either collection
-                                                Toast.makeText(MainActivity.this, "Error: User not found", Toast.LENGTH_SHORT).show();
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = auth.getCurrentUser();
+                            if (user != null && user.isEmailVerified()) {
+                                // Email is verified, proceed to check role
+                                FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+                                // Check in "Teacher" collection
+                                db.collection("Teacher").whereEqualTo("email", email)
+                                        .get()
+                                        .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                                if (task.isSuccessful() && !task.getResult().isEmpty()) {
+                                                    // User is a teacher, navigate to Teacher page
+                                                    String teacherEmail = txtemail.getText().toString();
+                                                    Toast.makeText(MainActivity.this, "Login as Teacher", Toast.LENGTH_SHORT).show();
+                                                    Intent intent = new Intent(MainActivity.this, Teacher.class); // Replace with your Teacher activity
+                                                    intent.putExtra("email", teacherEmail);
+                                                    startActivity(intent);
+                                                    finish();
+                                                } else {
+                                                    // If not in Teacher collection, check in Student collection
+                                                    db.collection("Student").whereEqualTo("email", email)
+                                                            .get()
+                                                            .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                                                @Override
+                                                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                                                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
+                                                                        // User is a student, navigate to Student page
+                                                                        String studentEmail = txtemail.getText().toString();
+                                                                        Toast.makeText(MainActivity.this, "Login as Student", Toast.LENGTH_SHORT).show();
+                                                                        Intent intent = new Intent(MainActivity.this, Student.class); // Replace with your Student activity
+                                                                        intent.putExtra("email", studentEmail);
+                                                                        startActivity(intent);
+                                                                        finish();
+                                                                    } else {
+                                                                        // Email not found in either collection
+                                                                        Toast.makeText(MainActivity.this, "Error: User not found in records", Toast.LENGTH_SHORT).show();
+                                                                    }
+                                                                }
+                                                            });
+                                                }
                                             }
-                                        }
-                                    });
+                                        });
+                            } else if (user != null && !user.isEmailVerified()) {
+                                // Email is not verified
+                                Toast.makeText(MainActivity.this, "Please verify your email before logging in.", Toast.LENGTH_LONG).show();
+                                auth.signOut(); // Log out the unverified user
+                            } else {
+                                // User object is null (shouldn't happen after successful authentication)
+                                Toast.makeText(MainActivity.this, "Unexpected error. Please try again.", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            // Authentication failed (e.g., wrong password)
+                            Toast.makeText(MainActivity.this, "Error: Incorrect email or password", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
-
-
     }
+
+
 }

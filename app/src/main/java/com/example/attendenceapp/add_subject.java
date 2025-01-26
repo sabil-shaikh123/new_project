@@ -124,8 +124,6 @@ public class add_subject extends AppCompatActivity {
                                 .addOnSuccessListener(aVoid -> {
                                     Toast.makeText(add_subject.this, "Subject added to teacher's list.", Toast.LENGTH_SHORT).show();
                                     // Inside add_subject.java after successfully adding the subject
-                                    Intent resultIntent = new Intent();
-                                    setResult(RESULT_OK, resultIntent);
                                     finish();
 
                                 })

@@ -1,5 +1,7 @@
 package com.example.attendenceapp;
 
+import static android.app.ProgressDialog.show;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -22,6 +24,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -71,8 +74,8 @@ public class create_acc extends AppCompatActivity {
 
                 // Check if all fields are filled and valid
                 if (validateFields(name, usn, email, pass, compass)) {
-                    // Send email verification first
-                    sendEmailVerification(email, pass, name, usn);
+                    // Check if email already exists
+                    checkIfEmailExistsAndRegister(email,pass,name,usn);
                 }
             }
         });
@@ -177,4 +180,29 @@ public class create_acc extends AppCompatActivity {
                     }
                 });
     }
+    private void checkIfEmailExistsAndRegister(String email, String password, String name, String usn) {
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+
+        // Attempt to sign in with the provided email and a dummy password
+        auth.signInWithEmailAndPassword(email, "dummyPassword")
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        // If sign-in is successful, it means the email already exists
+                        Toast.makeText(create_acc.this, "Email already exists. Please use a different email.", Toast.LENGTH_LONG).show();
+                    } else {
+                        // If the sign-in fails with ERROR_USER_NOT_FOUND, the email doesn't exist
+                        if (task.getException() instanceof FirebaseAuthException) {
+                            FirebaseAuthException exception = (FirebaseAuthException) task.getException();
+                            if ("ERROR_USER_NOT_FOUND".equals(exception.getErrorCode())) {
+                                // Email does not exist, proceed with registration
+                                sendEmailVerification(email, password, name, usn);
+                            } else {
+                                // Handle other errors (e.g., invalid credentials, etc.)
+                                Toast.makeText(create_acc.this, "Error: 123" + exception.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    }
+                });
+    }
+
 }
