@@ -19,14 +19,6 @@
         android:inputType="text"
         android:minHeight="48dp" />
 
-    <EditText
-        android:id="@+id/editTextSubjectCode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Subject Code (Unique)"
-        android:inputType="text"
-        android:minHeight="48dp" />
-
     <!-- Save Button -->
     <Button
         android:id="@+id/buttonSaveSubject"

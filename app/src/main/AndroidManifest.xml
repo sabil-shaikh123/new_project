@@ -16,6 +16,9 @@
             android:name=".add_subject"
             android:exported="false" />
         <activity
+            android:name=".SubjectDetailsActivity"
+            android:exported="false" />
+        <activity
             android:name=".Student"
             android:exported="false" />
         <activity

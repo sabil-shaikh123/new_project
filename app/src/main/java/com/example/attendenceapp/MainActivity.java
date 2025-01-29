@@ -139,41 +139,35 @@ public class MainActivity extends AppCompatActivity {
                                 FirebaseFirestore db = FirebaseFirestore.getInstance();
 
                                 // Check in "Teacher" collection
-                                db.collection("Teacher").whereEqualTo("email", email)
+                                db.collection("Teacher").document(email)
                                         .get()
-                                        .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                            @Override
-                                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                                if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                                                    // User is a teacher, navigate to Teacher page
-                                                    String teacherEmail = txtemail.getText().toString();
-                                                    Toast.makeText(MainActivity.this, "Login as Teacher", Toast.LENGTH_SHORT).show();
-                                                    Intent intent = new Intent(MainActivity.this, Teacher.class); // Replace with your Teacher activity
-                                                    intent.putExtra("email", teacherEmail);
-                                                    startActivity(intent);
-                                                    finish();
-                                                } else {
-                                                    // If not in Teacher collection, check in Student collection
-                                                    db.collection("Student").whereEqualTo("email", email)
-                                                            .get()
-                                                            .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                                                @Override
-                                                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                                                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                                                                        // User is a student, navigate to Student page
-                                                                        String studentEmail = txtemail.getText().toString();
-                                                                        Toast.makeText(MainActivity.this, "Login as Student", Toast.LENGTH_SHORT).show();
-                                                                        Intent intent = new Intent(MainActivity.this, Student.class); // Replace with your Student activity
-                                                                        intent.putExtra("email", studentEmail);
-                                                                        startActivity(intent);
-                                                                        finish();
-                                                                    } else {
-                                                                        // Email not found in either collection
-                                                                        Toast.makeText(MainActivity.this, "Error: User not found in records", Toast.LENGTH_SHORT).show();
-                                                                    }
-                                                                }
-                                                            });
-                                                }
+                                        .addOnCompleteListener(task1 -> {
+                                            if (task1.isSuccessful() && task1.getResult().exists()) {
+                                                // User is a teacher, navigate to Teacher page
+                                                String teacherEmail = txtemail.getText().toString();
+                                                Toast.makeText(MainActivity.this, "Login as Teacher", Toast.LENGTH_SHORT).show();
+                                                Intent intent = new Intent(MainActivity.this, Teacher.class); // Replace with your Teacher activity
+                                                intent.putExtra("email", teacherEmail);
+                                                startActivity(intent);
+                                                finish();
+                                            } else {
+                                                // If not in Teacher collection, check in Student collection
+                                                db.collection("Student").document(email)
+                                                        .get()
+                                                        .addOnCompleteListener(task2 -> {
+                                                            if (task2.isSuccessful() && task2.getResult().exists()) {
+                                                                // User is a student, navigate to Student page
+                                                                String studentEmail = txtemail.getText().toString();
+                                                                Toast.makeText(MainActivity.this, "Login as Student", Toast.LENGTH_SHORT).show();
+                                                                Intent intent = new Intent(MainActivity.this, Student.class); // Replace with your Student activity
+                                                                intent.putExtra("email", studentEmail);
+                                                                startActivity(intent);
+                                                                finish();
+                                                            } else {
+                                                                // Email not found in either collection
+                                                                Toast.makeText(MainActivity.this, "Error: User not found in records", Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        });
                                             }
                                         });
                             } else if (user != null && !user.isEmailVerified()) {

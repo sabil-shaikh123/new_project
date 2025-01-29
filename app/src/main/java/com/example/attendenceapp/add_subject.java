@@ -1,12 +1,11 @@
 package com.example.attendenceapp;
 
-import android.content.Intent;
+import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -19,16 +18,13 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class add_subject extends AppCompatActivity {
-
     private EditText editTextSubjectName, editTextSubjectCode;
     private Button buttonSaveSubject;
     private FirebaseFirestore db;
@@ -44,7 +40,6 @@ public class add_subject extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-        // Initialize Firestore
         db = FirebaseFirestore.getInstance();
 
         // Get teacher's email from the intent
@@ -52,7 +47,7 @@ public class add_subject extends AppCompatActivity {
 
         // Initialize views
         editTextSubjectName = findViewById(R.id.editTextSubjectName);
-        editTextSubjectCode = findViewById(R.id.editTextSubjectCode);
+
         buttonSaveSubject = findViewById(R.id.buttonSaveSubject);
 
         // Set onClickListener for save button
@@ -63,11 +58,12 @@ public class add_subject extends AppCompatActivity {
             }
         });
     }
-
     private void saveSubjectToFirestore() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss"); // Format: YYYYMMDDHHMMSS
+        String dateTime = dateFormat.format(new Date());
         // Get input data
         String subjectName = editTextSubjectName.getText().toString().trim();
-        String subjectCode = editTextSubjectCode.getText().toString().trim();
+        String subjectCode = teacherEmail+ "_" + dateTime;
 
         if (subjectName.isEmpty() || subjectCode.isEmpty() || teacherEmail == null) {
             Toast.makeText(this, "Please fill all fields.", Toast.LENGTH_SHORT).show();
@@ -108,24 +104,19 @@ public class add_subject extends AppCompatActivity {
 
 
     private void addSubjectToTeacher(String subjectName) {
-        // Query the teacher document where email matches the provided email
+        // Fetch the teacher document using the teacher's email
         db.collection("Teacher")
-                .whereEqualTo("email", teacherEmail)
+                .document(teacherEmail) // teacherEmail is the document ID in your case
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        // Get the first document matching the email
-                        QueryDocumentSnapshot documentSnapshot = (QueryDocumentSnapshot) queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
-
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
                         // Update the subjects array in the found document
-                        db.collection("Teacher").document(documentId)
+                        db.collection("Teacher").document(teacherEmail)
                                 .update("subjects", FieldValue.arrayUnion(subjectName))
                                 .addOnSuccessListener(aVoid -> {
                                     Toast.makeText(add_subject.this, "Subject added to teacher's list.", Toast.LENGTH_SHORT).show();
                                     // Inside add_subject.java after successfully adding the subject
                                     finish();
-
                                 })
                                 .addOnFailureListener(e -> {
                                     Toast.makeText(add_subject.this, "Error updating teacher's subjects: " + e.getMessage(), Toast.LENGTH_SHORT).show();

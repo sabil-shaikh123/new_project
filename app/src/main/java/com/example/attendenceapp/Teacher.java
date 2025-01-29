@@ -66,7 +66,7 @@ public class Teacher extends AppCompatActivity {
         recyclerViewSubjects = findViewById(R.id.recyclerViewSubjects);
         recyclerViewSubjects.setLayoutManager(new LinearLayoutManager(this));
         subjectList = new ArrayList<>();
-        subjectAdapter = new SubjectAdapter(subjectList);
+        subjectAdapter = new SubjectAdapter(this, subjectList);
         recyclerViewSubjects.setAdapter(subjectAdapter);
 
         // Get the teacher email from intent
@@ -88,21 +88,19 @@ public class Teacher extends AppCompatActivity {
         if (teacherEmail != null && !teacherEmail.isEmpty()) {
             fetchSubjectsInRealTime(teacherEmail); // Set up real-time listener for subjects
             // Query Firestore for the document where the email matches
-            db.collection("Teacher").whereEqualTo("email", teacherEmail)
+            db.collection("Teacher").document(teacherEmail)
                     .get()
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
-                            QuerySnapshot querySnapshot = task.getResult();
-                            if (!querySnapshot.isEmpty()) {
-                                for (QueryDocumentSnapshot document : querySnapshot) {
-                                    // Now you have access to the document where the email matches
-                                    String teacherName = document.getString("name");
-                                    String teacherUSN = document.getId(); // The document ID is the USN
+                            DocumentSnapshot documentSnapshot = task.getResult(); // Get the DocumentSnapshot
+                            if (documentSnapshot != null && documentSnapshot.exists()) {
+                                // Now you have access to the document where the email matches
+                                String teacherName = documentSnapshot.getString("name");
+                                String teacherUSN = documentSnapshot.getString("usn"); // The document ID is the USN
 
-                                    // Display the name and USN
-                                    tvTeacherName.setText(teacherName);
-                                    tvTeacherUSN.setText(teacherUSN);
-                                }
+                                // Display the name and USN
+                                tvTeacherName.setText(teacherName);
+                                tvTeacherUSN.setText(teacherUSN);
                             } else {
                                 Toast.makeText(Teacher.this, "No teacher found with this email", Toast.LENGTH_SHORT).show();
                             }
@@ -110,8 +108,11 @@ public class Teacher extends AppCompatActivity {
                             Toast.makeText(Teacher.this, "Error fetching teacher details", Toast.LENGTH_SHORT).show();
                         }
                     })
-                    .addOnFailureListener(e -> Toast.makeText(Teacher.this, "Error fetching data", Toast.LENGTH_SHORT).show());
-        } else {
+                    .addOnFailureListener(e ->
+                            Toast.makeText(Teacher.this, "Error fetching data: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
+        }
+        else {
             // Show error if email is not provided
             Toast.makeText(Teacher.this, "Teacher email not provided", Toast.LENGTH_SHORT).show();
         }
@@ -121,30 +122,31 @@ public class Teacher extends AppCompatActivity {
 
 
     private void fetchSubjectsInRealTime(String teacherEmail) {
-        // Query to find the document by teacher email and listen for real-time updates
+        // Listen for real-time updates on the Teacher document
         db.collection("Teacher")
-                .whereEqualTo("email", teacherEmail)
-                .addSnapshotListener((querySnapshot, e) -> {
+                .document(teacherEmail)
+                .addSnapshotListener((documentSnapshot, e) -> {
                     if (e != null) {
                         Toast.makeText(Teacher.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        DocumentSnapshot document = querySnapshot.getDocuments().get(0);
-
-                        // Check if "subjects" field exists and is an array
-                        if (document.contains("subjects")) {
-                            List<String> subjects = (List<String>) document.get("subjects");
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        // Check if the "subjects" field exists and is a list
+                        if (documentSnapshot.contains("subjects")) {
+                            List<String> subjects = (List<String>) documentSnapshot.get("subjects");
                             if (subjects != null) {
-                                subjectList.clear();
-                                subjectList.addAll(subjects);
-                                subjectAdapter.notifyDataSetChanged();
+                                subjectList.clear(); // Clear the existing list
+                                subjectList.addAll(subjects); // Add updated subjects
+                                subjectAdapter.notifyDataSetChanged(); // Notify adapter of the changes
                             }
                         }
+                    } else {
+                        Toast.makeText(Teacher.this, "Document does not exist.", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
 
 
 

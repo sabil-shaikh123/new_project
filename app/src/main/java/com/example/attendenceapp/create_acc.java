@@ -75,7 +75,8 @@ public class create_acc extends AppCompatActivity {
                 // Check if all fields are filled and valid
                 if (validateFields(name, usn, email, pass, compass)) {
                     // Check if email already exists
-                    checkIfEmailExistsAndRegister(email,pass,name,usn);
+                    checkIfEmailExistsInFirestore(email,pass,name,usn);
+                     //sendEmailVerification(email,pass,name,usn);
                 }
             }
         });
@@ -153,24 +154,24 @@ public class create_acc extends AppCompatActivity {
                     }
                 });
     }
-
     private void storeUserDetails(String name, String usn, String email) {
         // Create a map to store user details
         Map<String, Object> user = new HashMap<>();
         user.put("name", name);
-        //user.put("usn", usn);  // Store USN
-        user.put("email", email);
+        user.put("usn", usn);  // Add USN as a field in the document
+
         user.put("verified", false);  // Mark as false until they verify their email
 
         String collectionPath = checkBox.isChecked() ? "Teacher" : "Student";
-        // Use USN as the document ID
 
-        //this subject array is only created for the teachers
+        // Add a subjects array field for teachers
         if ("Teacher".equals(collectionPath)) {
             List<String> subjects = new ArrayList<>();
             user.put("subjects", subjects);
         }
-        firestore.collection(collectionPath).document(usn)
+
+        // Store the user details in Firestore with the unique document ID
+        firestore.collection(collectionPath).document(email)
                 .set(user)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -180,29 +181,64 @@ public class create_acc extends AppCompatActivity {
                     }
                 });
     }
-    private void checkIfEmailExistsAndRegister(String email, String password, String name, String usn) {
-        FirebaseAuth auth = FirebaseAuth.getInstance();
 
-        // Attempt to sign in with the provided email and a dummy password
-        auth.signInWithEmailAndPassword(email, "dummyPassword")
-                .addOnCompleteListener(task -> {
+    private void registerAndStoreUser(String email, String pass, String name, String usn) {
+        auth.createUserWithEmailAndPassword(email, pass)
+                .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        // If sign-in is successful, it means the email already exists
-                        Toast.makeText(create_acc.this, "Email already exists. Please use a different email.", Toast.LENGTH_LONG).show();
-                    } else {
-                        // If the sign-in fails with ERROR_USER_NOT_FOUND, the email doesn't exist
-                        if (task.getException() instanceof FirebaseAuthException) {
-                            FirebaseAuthException exception = (FirebaseAuthException) task.getException();
-                            if ("ERROR_USER_NOT_FOUND".equals(exception.getErrorCode())) {
-                                // Email does not exist, proceed with registration
-                                sendEmailVerification(email, password, name, usn);
-                            } else {
-                                // Handle other errors (e.g., invalid credentials, etc.)
-                                Toast.makeText(create_acc.this, "Error: 123" + exception.getMessage(), Toast.LENGTH_LONG).show();
-                            }
+                        FirebaseUser firebaseUser = auth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            firebaseUser.sendEmailVerification()
+                                    .addOnCompleteListener(emailTask -> {
+                                        if (emailTask.isSuccessful()) {
+                                            Toast.makeText(create_acc.this, "Verification email sent. Please verify and log in.", Toast.LENGTH_LONG).show();
+                                            auth.signOut();
+                                            storeUserDetails(name, usn, email);
+
+                                            // Redirect to login
+                                            Intent intent = new Intent(create_acc.this, MainActivity.class);
+                                            startActivity(intent);
+                                            finish();
+                                        } else {
+                                            Toast.makeText(create_acc.this, "Failed to send verification email.", Toast.LENGTH_LONG).show();
+                                        }
+                                    });
                         }
+                    } else {
+                        String error = ((FirebaseAuthException) task.getException()).getErrorCode();
+                        Toast.makeText(create_acc.this, "Error: " + error, Toast.LENGTH_LONG).show();
                     }
                 });
     }
+
+    private void checkIfEmailExistsInFirestore(String email, String pass, String name, String usn) {
+        firestore.collection("Student")
+                .whereEqualTo("email", email)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
+                        Toast.makeText(create_acc.this, "Email exists in the Student database.", Toast.LENGTH_LONG).show();
+                    } else {
+                        firestore.collection("Teacher")
+                                .whereEqualTo("email", email)
+                                .get()
+                                .addOnCompleteListener(teacherTask -> {
+                                    if (teacherTask.isSuccessful() && !teacherTask.getResult().isEmpty()) {
+                                        Toast.makeText(create_acc.this, "Email exists in the Teacher database.", Toast.LENGTH_LONG).show();
+                                    } else {
+                                        // If email doesn't exist, proceed with verification and storage
+                                        registerAndStoreUser(email, pass, name, usn);
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(create_acc.this, "Error checking Teacher database: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(create_acc.this, "Error checking Student database: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
 
 }

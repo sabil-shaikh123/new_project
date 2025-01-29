@@ -48,21 +48,19 @@ public class Student extends AppCompatActivity {
         // Check if the email is not null or empty
         if (studentEmail != null && !studentEmail.isEmpty()) {
             // Query Firestore for the document where the email matches
-            db.collection("Student").whereEqualTo("email", studentEmail)
+            db.collection("Student").document(studentEmail)
                     .get()
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
-                            QuerySnapshot querySnapshot = task.getResult();
-                            if (!querySnapshot.isEmpty()) {
-                                for (QueryDocumentSnapshot document : querySnapshot) {
-                                    // Now you have access to the document where the email matches
-                                    String studentName = document.getString("name");
-                                    String studentUSN = document.getId(); // The document ID is the USN
+                            DocumentSnapshot documentSnapshot = task.getResult(); // Get the DocumentSnapshot
+                            if (documentSnapshot != null && documentSnapshot.exists()) {
+                                // Now you have access to the document where the email matches
+                                String studentName = documentSnapshot.getString("name");
+                                String studentUSN = documentSnapshot.getId(); // The document ID is the USN
 
-                                    // Display the name and USN
-                                    tvStudentName.setText(studentName);
-                                    tvStudentUSN.setText(studentUSN);
-                                }
+                                // Display the name and USN
+                                tvStudentName.setText(studentName);
+                                tvStudentUSN.setText(studentUSN);
                             } else {
                                 Toast.makeText(Student.this, "No student found with this email", Toast.LENGTH_SHORT).show();
                             }
@@ -70,8 +68,11 @@ public class Student extends AppCompatActivity {
                             Toast.makeText(Student.this, "Error fetching student details", Toast.LENGTH_SHORT).show();
                         }
                     })
-                    .addOnFailureListener(e -> Toast.makeText(Student.this, "Error fetching data", Toast.LENGTH_SHORT).show());
-        } else {
+                    .addOnFailureListener(e ->
+                            Toast.makeText(Student.this, "Error fetching data: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
+        }
+        else {
             // Show error if email is not provided
             Toast.makeText(Student.this, "Student email not provided", Toast.LENGTH_SHORT).show();
         }
