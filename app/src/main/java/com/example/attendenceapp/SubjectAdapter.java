@@ -12,18 +12,22 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.Map;
 
 public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.SubjectViewHolder> {
 
 
-    private List<String> subjectList;
+
     private Context context; // To start the new intent
 
     // Constructor
-    public SubjectAdapter(Context context, List<String> subjectList) {
+    private List<Map<String, String>> subjectList; // Update the type of subjectList
+
+    public SubjectAdapter(Context context, List<Map<String, String>> subjectList) {
         this.context = context;
         this.subjectList = subjectList;
     }
+
 
     @NonNull
     @Override
@@ -32,18 +36,24 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.SubjectV
         return new SubjectViewHolder(view);
     }
 
+
     @Override
     public void onBindViewHolder(@NonNull SubjectViewHolder holder, int position) {
-        String subjectName = subjectList.get(position);
+        Map<String, String> subject = subjectList.get(position); // Get the subject map
+        String subjectName = subject.get("name"); // Get the subject name
+        String subjectCode = subject.get("code"); // Get the subject code
+
         holder.textViewSubjectName.setText(subjectName);
 
         // Set OnClickListener for the item
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, SubjectDetailsActivity.class);
             intent.putExtra("subjectName", subjectName); // Pass the subject name to the new activity
+            intent.putExtra("subjectCode", subjectCode); // Pass the subject code to the new activity
             context.startActivity(intent);
         });
     }
+
 
     @Override
     public int getItemCount() {

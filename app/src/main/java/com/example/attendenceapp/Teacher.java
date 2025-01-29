@@ -2,6 +2,7 @@ package com.example.attendenceapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -25,7 +26,9 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.security.auth.Subject;
 
@@ -39,7 +42,9 @@ public class Teacher extends AppCompatActivity {
     //
     private RecyclerView recyclerViewSubjects;
     private SubjectAdapter subjectAdapter;
+    private List<Map<String, String>> mappedSubjects; // List of Map to hold both name and code
     private List<String> subjectList;
+    private List<String> subjects1;
     private String teacherEmail;
 
     @Override
@@ -62,11 +67,28 @@ public class Teacher extends AppCompatActivity {
         // Initialize Firestore
         db = FirebaseFirestore.getInstance();
 
+        subjectList = new ArrayList<>();
+        subjects1 = new ArrayList<>();
+        mappedSubjects = new ArrayList<>();
+
+        // Ensure both lists are of the same size
+        if (subjectList.size() == subjects1.size()) {
+            for (int i = 0; i < subjectList.size(); i++) {
+                Map<String, String> subjectMap = new HashMap<>();
+                subjectMap.put("name", subjectList.get(i));  // Add subject name
+                subjectMap.put("code", subjects1.get(i));   // Add subject code
+                mappedSubjects.add(subjectMap);
+            }
+        } else {
+            // Handle the case where the lists are not of the same size
+            Log.e("MappingError", "Subject lists and codes list are of different sizes.");
+        }
+
         //
         recyclerViewSubjects = findViewById(R.id.recyclerViewSubjects);
         recyclerViewSubjects.setLayoutManager(new LinearLayoutManager(this));
         subjectList = new ArrayList<>();
-        subjectAdapter = new SubjectAdapter(this, subjectList);
+        subjectAdapter = new SubjectAdapter(this,mappedSubjects);
         recyclerViewSubjects.setAdapter(subjectAdapter);
 
         // Get the teacher email from intent
@@ -84,9 +106,9 @@ public class Teacher extends AppCompatActivity {
         });
 
 
-        // Check if the email is not null or empty
+        // Check if the email is not null or empty and set the text
         if (teacherEmail != null && !teacherEmail.isEmpty()) {
-            fetchSubjectsInRealTime(teacherEmail); // Set up real-time listener for subjects
+            fetchSubjectsInRealTime1(teacherEmail); // Set up real-time listener for subjects
             // Query Firestore for the document where the email matches
             db.collection("Teacher").document(teacherEmail)
                     .get()
@@ -121,8 +143,7 @@ public class Teacher extends AppCompatActivity {
     }
 
 
-    private void fetchSubjectsInRealTime(String teacherEmail) {
-        // Listen for real-time updates on the Teacher document
+    private void fetchSubjectsInRealTime1(String teacherEmail) {
         db.collection("Teacher")
                 .document(teacherEmail)
                 .addSnapshotListener((documentSnapshot, e) -> {
@@ -132,13 +153,45 @@ public class Teacher extends AppCompatActivity {
                     }
 
                     if (documentSnapshot != null && documentSnapshot.exists()) {
-                        // Check if the "subjects" field exists and is a list
                         if (documentSnapshot.contains("subjects")) {
-                            List<String> subjects = (List<String>) documentSnapshot.get("subjects");
-                            if (subjects != null) {
-                                subjectList.clear(); // Clear the existing list
-                                subjectList.addAll(subjects); // Add updated subjects
-                                subjectAdapter.notifyDataSetChanged(); // Notify adapter of the changes
+                            subjects1 = (List<String>) documentSnapshot.get("subjects");
+                            if (subjects1 != null) {
+                                // Clear the existing lists before adding new subjects
+                                subjectList.clear();
+                                mappedSubjects.clear();  // Make sure mappedSubjects is also cleared
+
+                                final int[] pendingFetches = {subjects1.size()};  // Counter to track pending fetches
+
+                                for (String subjectId : subjects1) {
+                                    db.collection("Subjects")
+                                            .document(subjectId)
+                                            .get()
+                                            .addOnCompleteListener(task -> {
+                                                if (task.isSuccessful()) {
+                                                    DocumentSnapshot document = task.getResult();
+                                                    if (document.exists()) {
+                                                        String subjectName = document.getString("subject_name");
+                                                        if (subjectName != null) {
+                                                            subjectList.add(subjectName);
+
+                                                            // Map the subject name with its corresponding code
+                                                            Map<String, String> subjectMap = new HashMap<>();
+                                                            subjectMap.put("name", subjectName);
+                                                            subjectMap.put("code", subjectId);
+                                                            mappedSubjects.add(subjectMap);
+                                                        }
+                                                    }
+                                                } else {
+                                                    Log.e("SubjectFetch", "Error getting subject: ", task.getException());
+                                                }
+
+                                                // Decrement counter and notify adapter when all fetches are done
+                                                pendingFetches[0]--;
+                                                if (pendingFetches[0] == 0) {
+                                                    subjectAdapter.notifyDataSetChanged();  // Update RecyclerView
+                                                }
+                                            });
+                                }
                             }
                         }
                     } else {
@@ -146,14 +199,6 @@ public class Teacher extends AppCompatActivity {
                     }
                 });
     }
-
-
-
-
-
-
-
-
 
 
 }

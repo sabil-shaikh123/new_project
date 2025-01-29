@@ -2,6 +2,7 @@ package com.example.attendenceapp;
 
 import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -86,8 +87,24 @@ public class add_subject extends AppCompatActivity {
                         Toast.makeText(add_subject.this, "Subject added successfully", Toast.LENGTH_SHORT).show();
 
                         // Now, add the subject name to the teacher's subject list
-                        addSubjectToTeacher(subjectName);
+                        addSubjectToTeacher(subjectCode);
 
+                        // Set the QR code field to null
+                        db.collection("Subjects")
+                                .document(subjectCode)
+                                .update("qr_code", null)
+                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        Log.d("QR Code", "QR code field set to null");
+                                    }
+                                })
+                                .addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Log.e("QR Code Error", "Error setting QR code field: " + e.getMessage());
+                                    }
+                                });
 
                         finish();  // Close this activity
                     }
@@ -98,12 +115,13 @@ public class add_subject extends AppCompatActivity {
                         Toast.makeText(add_subject.this, "Error adding subject: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
+
     }
 
 
 
 
-    private void addSubjectToTeacher(String subjectName) {
+    private void addSubjectToTeacher(String subjectCode) {
         // Fetch the teacher document using the teacher's email
         db.collection("Teacher")
                 .document(teacherEmail) // teacherEmail is the document ID in your case
@@ -112,7 +130,7 @@ public class add_subject extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         // Update the subjects array in the found document
                         db.collection("Teacher").document(teacherEmail)
-                                .update("subjects", FieldValue.arrayUnion(subjectName))
+                                .update("subjects", FieldValue.arrayUnion(subjectCode))
                                 .addOnSuccessListener(aVoid -> {
                                     Toast.makeText(add_subject.this, "Subject added to teacher's list.", Toast.LENGTH_SHORT).show();
                                     // Inside add_subject.java after successfully adding the subject

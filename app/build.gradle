@@ -38,6 +38,8 @@ dependencies {
     implementation libs.firebase.auth  // Firebase Authentication
     implementation 'com.google.firebase:firebase-firestore:25.1.1'  // Firestore dependency
     implementation 'androidx.recyclerview:recyclerview:1.2.1'     //recycler view
+    implementation 'com.google.zxing:core:3.5.2'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

@@ -15,4 +15,27 @@
         android:gravity="center"
         android:padding="16dp"
         android:text="Subject Name" />
+
+    <Button
+        android:id="@+id/buttonGenerateQRCode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Generate QR Code" />
+
+    <!-- New button to close/hide QR code -->
+    <Button
+        android:id="@+id/buttonCloseQRCode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Close QR Code"
+        android:visibility="gone" /> <!-- Initially hidden -->
+
+    <ImageView
+        android:id="@+id/imageViewQRCode"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center"
+        android:visibility="gone" /> <!-- Initially hidden -->
 </LinearLayout>
