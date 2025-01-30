@@ -121,7 +121,7 @@ public class SubjectDetailsActivity extends AppCompatActivity {
             imageViewQRCode.setVisibility(ImageView.VISIBLE);
 
             // Save the QR code session to Firestore
-            saveQRCodeToFirestore(uniqueQRCode,type);
+            saveQRCodeToFirestore(qrCodeData,type);
 
         } catch (WriterException e) {
             e.printStackTrace();

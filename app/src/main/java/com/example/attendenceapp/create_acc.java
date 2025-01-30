@@ -164,11 +164,10 @@ public class create_acc extends AppCompatActivity {
 
         String collectionPath = checkBox.isChecked() ? "Teacher" : "Student";
 
-        // Add a subjects array field for teachers
-        if ("Teacher".equals(collectionPath)) {
-            List<String> subjects = new ArrayList<>();
-            user.put("subjects", subjects);
-        }
+       //adding subject array for both student and the teacher
+        List<String> subjects = new ArrayList<>();
+        user.put("subjects", subjects);
+
 
         // Store the user details in Firestore with the unique document ID
         firestore.collection(collectionPath).document(email)
