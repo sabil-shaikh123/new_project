@@ -88,24 +88,6 @@ public class add_subject extends AppCompatActivity {
 
                         // Now, add the subject name to the teacher's subject list
                         addSubjectToTeacher(subjectCode);
-
-                        // Set the QR code field to null
-                        db.collection("Subjects")
-                                .document(subjectCode)
-                                .update("qr_code", null)
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void aVoid) {
-                                        Log.d("QR Code", "QR code field set to null");
-                                    }
-                                })
-                                .addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Log.e("QR Code Error", "Error setting QR code field: " + e.getMessage());
-                                    }
-                                });
-
                         finish();  // Close this activity
                     }
                 })

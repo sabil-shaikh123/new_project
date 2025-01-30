@@ -3,6 +3,7 @@ package com.example.attendenceapp;
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -23,6 +24,11 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.WriterException;
 
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 public class SubjectDetailsActivity extends AppCompatActivity {
@@ -45,6 +51,8 @@ public class SubjectDetailsActivity extends AppCompatActivity {
         Button buttonGenerateQRCode = findViewById(R.id.buttonGenerateQRCode);
         imageViewQRCode = findViewById(R.id.imageViewQRCode);
         Button buttonCloseQRCode = findViewById(R.id.buttonCloseQRCode);
+        Button take_attend = findViewById(R.id.Take_attend);
+        Button end_attend= findViewById(R.id.End_attend);
         db = FirebaseFirestore.getInstance();
 
         // Get the subject name and ID from the intent
@@ -58,21 +66,35 @@ public class SubjectDetailsActivity extends AppCompatActivity {
 
         // Set click listener for QR code generation
         buttonGenerateQRCode.setOnClickListener(v -> {
-            generateAndSaveQRCode();
+            generateAndSaveQRCode(false);
+            take_attend.setVisibility(View.GONE);
             buttonCloseQRCode.setVisibility(View.VISIBLE);
             buttonGenerateQRCode.setVisibility(View.GONE);
         });
 
-
+        take_attend.setOnClickListener(v ->{
+            createAttendanceField();
+            generateAndSaveQRCode(true);
+            buttonGenerateQRCode.setVisibility(View.GONE);
+            take_attend.setVisibility(View.GONE);
+            end_attend.setVisibility(View.VISIBLE);
+        });
+        end_attend.setOnClickListener(v ->{
+            buttonGenerateQRCode.setVisibility(View.VISIBLE);
+            imageViewQRCode.setVisibility(View.GONE);
+            take_attend.setVisibility(View.VISIBLE);
+            end_attend.setVisibility(View.GONE);
+        });
         // When Close QR Code is clicked
         buttonCloseQRCode.setOnClickListener(v -> {
+            take_attend.setVisibility(View.VISIBLE);
             imageViewQRCode.setVisibility(View.GONE);  // Hide the QR code
             buttonCloseQRCode.setVisibility(View.GONE);  // Hide the Close button
             buttonGenerateQRCode.setVisibility(View.VISIBLE);  // Show the Generate button again
         });
     }
 
-    private void generateAndSaveQRCode() {
+    private void generateAndSaveQRCode(boolean type) {
         if (subjectId == null) {
             Toast.makeText(this, "Subject ID not found!", Toast.LENGTH_SHORT).show();
             return;
@@ -99,7 +121,7 @@ public class SubjectDetailsActivity extends AppCompatActivity {
             imageViewQRCode.setVisibility(ImageView.VISIBLE);
 
             // Save the QR code session to Firestore
-            saveQRCodeToFirestore(uniqueQRCode);
+            saveQRCodeToFirestore(uniqueQRCode,type);
 
         } catch (WriterException e) {
             e.printStackTrace();
@@ -107,10 +129,43 @@ public class SubjectDetailsActivity extends AppCompatActivity {
         }
     }
 
-    private void saveQRCodeToFirestore(String uniqueQRCode) {
+    private void saveQRCodeToFirestore(String uniqueQRCode, boolean isForA) {
+        String fieldToUpdate = isForA ? "qr_code_A" : "qr_code_S";
+
         db.collection("Subjects").document(subjectId)
-                .update("qr_code", uniqueQRCode)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "QR Code saved to Firestore.", Toast.LENGTH_SHORT).show())
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save QR Code: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .update(fieldToUpdate, uniqueQRCode)
+                .addOnSuccessListener(aVoid ->
+                        Toast.makeText(this, "QR Code saved to Firestore in " + fieldToUpdate + ".", Toast.LENGTH_SHORT).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed to save QR Code: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
+    }
+
+    private void createAttendanceField() {
+        if (subjectId == null) {
+            Toast.makeText(this, "Subject ID not found!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Get the current date in YYYY-MM-DD format
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        // Create the attendance map structure
+        Map<String, Object> attendanceMap = new HashMap<>();
+
+        // Present and absent maps
+        Map<String, ArrayList<String>> presentAbsentMap = new HashMap<>();
+        presentAbsentMap.put("present", new ArrayList<>()); // Empty list for present students
+        presentAbsentMap.put("absent", new ArrayList<>());  // Empty list for absent students
+
+        // Add to the main attendance map with the current date as the key
+        attendanceMap.put(currentDate, presentAbsentMap);
+
+        // Update Firestore with the attendance map
+        db.collection("Subjects").document(subjectId)
+                .update("attendance." + currentDate, presentAbsentMap)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Attendance field created successfully.", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to create attendance field: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }
