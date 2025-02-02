@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.icu.text.SimpleDateFormat;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -12,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -24,18 +26,26 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.WriterException;
 
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
+interface PresentStudentsCallback {
+    void onPresentStudentsFetched(List<String> presentStudents);
+}
 
 public class SubjectDetailsActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private String subjectId;
     private ImageView imageViewQRCode;
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,12 +89,75 @@ public class SubjectDetailsActivity extends AppCompatActivity {
             take_attend.setVisibility(View.GONE);
             end_attend.setVisibility(View.VISIBLE);
         });
-        end_attend.setOnClickListener(v ->{
+        end_attend.setOnClickListener(v -> {
             buttonGenerateQRCode.setVisibility(View.VISIBLE);
             imageViewQRCode.setVisibility(View.GONE);
             take_attend.setVisibility(View.VISIBLE);
             end_attend.setVisibility(View.GONE);
+
+            LocalDate currentDate1 = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            String currentDate = currentDate1.format(formatter);
+
+
+            db.collection("Subjects").document(subjectId)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            List<String> enrolledStudents = (List<String>) documentSnapshot.get("students");
+                            if (enrolledStudents == null) {
+                                enrolledStudents = new ArrayList<>();
+                            }
+
+                            // Fetch present students asynchronously
+                            List<String> finalEnrolledStudents1 = enrolledStudents;
+                            getPresentStudents(subjectId, currentDate, presentStudents -> {
+                                List<String> absentStudents = new ArrayList<>();
+                                for (String student : finalEnrolledStudents1) {
+                                    if (!presentStudents.contains(student)) {
+                                        absentStudents.add(student);
+                                    }
+                                }
+
+                                // Get or initialize attendance data
+                                Map<String, Object> attendanceMap = (Map<String, Object>) documentSnapshot.get("attendance");
+                                if (attendanceMap == null) {
+                                    attendanceMap = new HashMap<>();
+                                }
+
+                                Map<String, Object> currentDateAttendance = (Map<String, Object>) attendanceMap.get(currentDate);
+                                if (currentDateAttendance == null) {
+                                    currentDateAttendance = new HashMap<>();
+                                }
+
+                                // Update the absent list
+                                List<String> existingAbsent = (List<String>) currentDateAttendance.get("absent");
+                                if (existingAbsent == null) {
+                                    existingAbsent = new ArrayList<>();
+                                }
+                                existingAbsent.addAll(absentStudents);
+                                currentDateAttendance.put("absent", existingAbsent);
+                                attendanceMap.put(currentDate, currentDateAttendance);
+
+                                // Update Firestore
+                                db.collection("Subjects").document(subjectId)
+                                        .update("attendance", attendanceMap)
+                                        .addOnSuccessListener(aVoid -> {
+                                            Toast.makeText(SubjectDetailsActivity.this, "Absent list updated successfully!", Toast.LENGTH_SHORT).show();
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(SubjectDetailsActivity.this, "Failed to update absent list: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        });
+                            });
+                        } else {
+                            Toast.makeText(SubjectDetailsActivity.this, "Subject document not found!", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(SubjectDetailsActivity.this, "Failed to retrieve subject data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
         });
+
         // When Close QR Code is clicked
         buttonCloseQRCode.setOnClickListener(v -> {
             take_attend.setVisibility(View.VISIBLE);
@@ -93,6 +166,31 @@ public class SubjectDetailsActivity extends AppCompatActivity {
             buttonGenerateQRCode.setVisibility(View.VISIBLE);  // Show the Generate button again
         });
     }
+    public void getPresentStudents(String subjectId, String currentDate, PresentStudentsCallback callback) {
+        db.collection("Subjects").document(subjectId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    List<String> presentStudents = new ArrayList<>();
+                    if (documentSnapshot.exists()) {
+                        Map<String, Object> attendanceMap = (Map<String, Object>) documentSnapshot.get("attendance");
+                        if (attendanceMap != null) {
+                            Map<String, Object> dateAttendance = (Map<String, Object>) attendanceMap.get(currentDate);
+                            if (dateAttendance != null) {
+                                List<String> fetchedPresentStudents = (List<String>) dateAttendance.get("present");
+                                if (fetchedPresentStudents != null) {
+                                    presentStudents.addAll(fetchedPresentStudents);
+                                }
+                            }
+                        }
+                    }
+                    callback.onPresentStudentsFetched(presentStudents);  // Call the callback with fetched data
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch present students: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    callback.onPresentStudentsFetched(new ArrayList<>());  // Return empty list on failure
+                });
+    }
+
 
     private void generateAndSaveQRCode(boolean type) {
         if (subjectId == null) {

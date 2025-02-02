@@ -101,7 +101,6 @@ public class Teacher extends AppCompatActivity {
                 intent.putExtra("teacherEmail", teacherEmail);  // Pass the teacher's email
                 startActivity(intent);
 
-
             }
         });
 

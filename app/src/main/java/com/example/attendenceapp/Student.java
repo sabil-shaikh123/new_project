@@ -3,6 +3,7 @@ package com.example.attendenceapp;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -35,7 +36,12 @@ import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.BarcodeView;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class Student extends AppCompatActivity {
     private TextView tvStudentName, tvStudentUSN;
@@ -56,8 +62,8 @@ public class Student extends AppCompatActivity {
         });
         barcodeView = findViewById(R.id.barcode_scanner);
         Button btnScan = findViewById(R.id.btnScan);
-
-
+        studentEmail = getIntent().getStringExtra("email");
+        Toast.makeText(Student.this,studentEmail,Toast.LENGTH_SHORT).show();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             // Request Camera Permission
@@ -88,8 +94,6 @@ public class Student extends AppCompatActivity {
                             String scannedQrCode = result.getText();
                             Toast.makeText(Student.this, "Scanned: " + scannedQrCode, Toast.LENGTH_SHORT).show();
 
-                            // Student email (assume this is passed via intent)
-                            String studentEmail = getIntent().getStringExtra("email");
 
 
                             // Check if both scanned QR code and student email are valid
@@ -100,37 +104,85 @@ public class Student extends AppCompatActivity {
                                         .get()
                                         .addOnCompleteListener(task -> {
                                             if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                                                // Found a match for 'qr_code_s'
                                                 for (QueryDocumentSnapshot document : task.getResult()) {
                                                     String subjectId = document.getId();
 
-                                                    // Add the student email to the 'students' array field
-                                                    db.collection("Subjects").document(subjectId)
-                                                            .update("students", FieldValue.arrayUnion(studentEmail))
-                                                            .addOnSuccessListener(aVoid -> {
-                                                                Toast.makeText(Student.this, "You have been added to the subject successfully!", Toast.LENGTH_SHORT).show();
-                                                            })
-                                                            .addOnFailureListener(e -> {
-                                                                Toast.makeText(Student.this, "Failed to add student to subject: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                            });
+                                                    Toast.makeText(Student.this, "subjectid: " + subjectId, Toast.LENGTH_SHORT).show();
+
+                                                    List<Object> studentsObjectList = (List<Object>) document.get("students");
+                                                    List<String> enrolledStudents = new ArrayList<>();
+
+                                                    if (studentsObjectList != null) {
+                                                        for (Object obj : studentsObjectList) {
+                                                            if (obj instanceof String) {
+                                                                enrolledStudents.add((String) obj);
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Toast.makeText(Student.this, "hi", Toast.LENGTH_SHORT).show();
+                                                    // Check if the student is already enrolled
+                                                    if (enrolledStudents.contains(studentEmail)) {
+                                                        Toast.makeText(Student.this, "You are already enrolled in this subject.", Toast.LENGTH_SHORT).show();
+                                                    } else {
+                                                        // Add the student email to the 'students' array field in 'Subjects'
+                                                        db.collection("Subjects").document(subjectId)
+                                                                .update("students", FieldValue.arrayUnion(studentEmail))
+                                                                .addOnSuccessListener(aVoid -> {
+
+                                                                    // Now add the subjectId to the 'subjects' array in the 'Student' collection
+                                                                    db.collection("Student").document(studentEmail)
+                                                                            .update("subjects", FieldValue.arrayUnion(subjectId))
+                                                                            .addOnSuccessListener(aVoid2 -> {
+                                                                                Toast.makeText(Student.this, "Subject added successfully!", Toast.LENGTH_SHORT).show();
+                                                                            })
+                                                                            .addOnFailureListener(e -> {
+                                                                                Toast.makeText(Student.this, "Failed to add subject to student: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                                                            });
+
+                                                                })
+                                                                .addOnFailureListener(e -> {
+                                                                    Toast.makeText(Student.this, "Failed to add student to subject: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                                                });
+                                                    }
                                                 }
                                             } else {
-                                                // If no match for 'qr_code_s', check 'qr_code_A'
+                                                String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
                                                 db.collection("Subjects")
                                                         .whereEqualTo("qr_code_A", scannedQrCode)
                                                         .get()
                                                         .addOnCompleteListener(adminTask -> {
                                                             if (adminTask.isSuccessful() && !adminTask.getResult().isEmpty()) {
-                                                                // Found a match for 'qr_code_A'
-                                                                Toast.makeText(Student.this, "QR Code belongs to admin for attendance marking.", Toast.LENGTH_SHORT).show();
+                                                                DocumentSnapshot subjectDoc = adminTask.getResult().getDocuments().get(0);
+                                                                List<String> students = (List<String>) subjectDoc.get("students");
+
+                                                                if (students != null && students.contains(studentEmail)) {
+                                                                    // Student is part of the subject, now update attendance
+
+                                                                    // Use FieldValue.arrayUnion to append the student email without overwriting
+                                                                    db.collection("Subjects")
+                                                                            .document(subjectDoc.getId())
+                                                                            .update("attendance." + currentDate + ".present", FieldValue.arrayUnion(studentEmail))
+                                                                            .addOnSuccessListener(aVoid ->
+                                                                                    Toast.makeText(Student.this, "Attendance marked successfully.", Toast.LENGTH_SHORT).show()
+                                                                            )
+                                                                            .addOnFailureListener(e ->
+                                                                                    Toast.makeText(Student.this, "Error updating attendance: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                                                            );
+
+                                                                } else {
+                                                                    // Student is not part of the subject
+                                                                    Toast.makeText(Student.this, "You are not enrolled in this subject.", Toast.LENGTH_SHORT).show();
+                                                                }
                                                             } else {
-                                                                // No match for either 'qr_code_s' or 'qr_code_A'
+                                                                // No matching QR code found
                                                                 Toast.makeText(Student.this, "No matching QR code found.", Toast.LENGTH_SHORT).show();
                                                             }
                                                         })
-                                                        .addOnFailureListener(e -> {
-                                                            Toast.makeText(Student.this, "Error checking QR code: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                        });
+                                                        .addOnFailureListener(e ->
+                                                                Toast.makeText(Student.this, "Error checking QR code: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                                        );
                                             }
                                         })
                                         .addOnFailureListener(e -> {
