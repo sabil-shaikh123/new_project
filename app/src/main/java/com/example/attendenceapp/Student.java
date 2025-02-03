@@ -55,6 +55,8 @@ public class Student extends AppCompatActivity {
     private RecyclerView recyclerViewSubjects;
     private SubjectsAdapter subjectsAdapter;
     private List<String> subjectNamesList;
+    private List<SubjectDetails> subjectDetailsList;
+
 
 
     @SuppressLint("MissingInflatedId")
@@ -72,8 +74,11 @@ public class Student extends AppCompatActivity {
         recyclerViewSubjects = findViewById(R.id.recyclerViewSubjects);
         recyclerViewSubjects.setLayoutManager(new LinearLayoutManager(this));
         subjectNamesList = new ArrayList<>();
-        subjectsAdapter = new SubjectsAdapter(subjectNamesList);
+        subjectDetailsList = new ArrayList<>();
+
+        subjectsAdapter = new SubjectsAdapter(subjectDetailsList);
         recyclerViewSubjects.setAdapter(subjectsAdapter);
+
 
         barcodeView = findViewById(R.id.barcode_scanner);
         Button btnScan = findViewById(R.id.btnScan);
@@ -334,7 +339,7 @@ public class Student extends AppCompatActivity {
                         if (document != null && document.exists()) {
                             List<String> subjectIds = (List<String>) document.get("subjects");
                             if (subjectIds != null) {
-                                fetchSubjectNames(subjectIds);
+                                fetchSubjectDetails(subjectIds);
                             } else {
                                 Toast.makeText(this, "No subjects enrolled", Toast.LENGTH_SHORT).show();
                             }
@@ -348,24 +353,38 @@ public class Student extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void fetchSubjectNames(List<String> subjectIds) {
+    private void fetchSubjectDetails(List<String> subjectIds) {
         for (String subjectId : subjectIds) {
             db.collection("Subjects").document(subjectId)
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
                             String subjectName = documentSnapshot.getString("subject_name");
-                            if (subjectName != null) {
-                                subjectNamesList.add(subjectName);
-                                Toast.makeText(Student.this, subjectNamesList.toString(), Toast.LENGTH_SHORT).show();
-                                subjectsAdapter.notifyDataSetChanged();
+                            Map<String, Object> attendanceMap = (Map<String, Object>) documentSnapshot.get("attendance");
 
-                                //subjectNamesList.add(subjectName);
-                                //subjectsAdapter.notifyDataSetChanged();
+                            int totalClasses = 0;
+                            int attendedClasses = 0;
+
+                            if (attendanceMap != null) {
+                                totalClasses = attendanceMap.size();
+                                for (Map.Entry<String, Object> entry : attendanceMap.entrySet()) {
+                                    Map<String, List<String>> attendanceDetails = (Map<String, List<String>>) entry.getValue();
+                                    List<String> presentList = attendanceDetails.get("present");
+                                    if (presentList != null && presentList.contains(studentEmail)) {
+                                        attendedClasses++;
+                                    }
+                                }
                             }
+
+                            double attendancePercentage = (totalClasses > 0) ? ((double) attendedClasses / totalClasses) * 100 : 0;
+                            SubjectDetails subjectDetails = new SubjectDetails(subjectName, attendedClasses, totalClasses, attendancePercentage);
+                            subjectDetailsList.add(subjectDetails);
+                            subjectsAdapter.notifyDataSetChanged();
+
                         }
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Error fetching subject: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         }
     }
+
 }
