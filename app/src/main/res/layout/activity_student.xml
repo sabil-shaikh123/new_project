@@ -38,6 +38,7 @@
         />
 
     <!-- Scan Button -->
+
     <Button
         android:id="@+id/btnScan"
         android:layout_width="wrap_content"
@@ -49,10 +50,9 @@
         android:textSize="18sp" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/subjectsRecyclerView"
-        android:layout_width="309dp"
-        android:layout_height="549dp"
-        android:layout_marginTop="16dp"
-        android:padding="8dp" />
+        android:id="@+id/recyclerViewSubjects"
+        android:layout_width="147dp"
+        android:layout_height="291dp" />
+
 
 </LinearLayout>

@@ -13,7 +13,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,6 +23,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -49,6 +52,11 @@ public class Student extends AppCompatActivity {
     private FirebaseAuth auth; // Declare FirebaseAuth instance
     private String studentEmail;
     private BarcodeView barcodeView;
+    private RecyclerView recyclerViewSubjects;
+    private SubjectsAdapter subjectsAdapter;
+    private List<String> subjectNamesList;
+
+
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,9 +68,17 @@ public class Student extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        recyclerViewSubjects = findViewById(R.id.recyclerViewSubjects);
+        recyclerViewSubjects.setLayoutManager(new LinearLayoutManager(this));
+        subjectNamesList = new ArrayList<>();
+        subjectsAdapter = new SubjectsAdapter(subjectNamesList);
+        recyclerViewSubjects.setAdapter(subjectsAdapter);
+
         barcodeView = findViewById(R.id.barcode_scanner);
         Button btnScan = findViewById(R.id.btnScan);
         studentEmail = getIntent().getStringExtra("email");
+
         Toast.makeText(Student.this,studentEmail,Toast.LENGTH_SHORT).show();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -76,6 +92,14 @@ public class Student extends AppCompatActivity {
         // Start scanning when the button is clicked
         // Set button click listener
         // Set button click listener
+
+        db = FirebaseFirestore.getInstance();
+
+        if (studentEmail != null && !studentEmail.isEmpty()) {
+            fetchStudentSubjects(studentEmail);
+        } else {
+            Toast.makeText(this, "Student email not provided", Toast.LENGTH_SHORT).show();
+        }
         btnScan.setOnClickListener(v -> {
             if (barcodeView.getVisibility() == BarcodeView.GONE) {
                 // Check for Camera Permission
@@ -262,6 +286,7 @@ public class Student extends AppCompatActivity {
         }
 
 
+
     }
 
 
@@ -297,5 +322,50 @@ public class Student extends AppCompatActivity {
         barcodeView = findViewById(R.id.barcode_scanner);
         // Add your barcode scanning logic here
         Toast.makeText(this, "Camera permission granted. Ready to scan.", Toast.LENGTH_SHORT).show();
+    }
+
+
+    private void fetchStudentSubjects(String email) {
+        db.collection("Student").document(email)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document != null && document.exists()) {
+                            List<String> subjectIds = (List<String>) document.get("subjects");
+                            if (subjectIds != null) {
+                                fetchSubjectNames(subjectIds);
+                            } else {
+                                Toast.makeText(this, "No subjects enrolled", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Toast.makeText(this, "Student data not found", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(this, "Error fetching student data", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void fetchSubjectNames(List<String> subjectIds) {
+        for (String subjectId : subjectIds) {
+            db.collection("Subjects").document(subjectId)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            String subjectName = documentSnapshot.getString("subject_name");
+                            if (subjectName != null) {
+                                subjectNamesList.add(subjectName);
+                                Toast.makeText(Student.this, subjectNamesList.toString(), Toast.LENGTH_SHORT).show();
+                                subjectsAdapter.notifyDataSetChanged();
+
+                                //subjectNamesList.add(subjectName);
+                                //subjectsAdapter.notifyDataSetChanged();
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Error fetching subject: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        }
     }
 }
