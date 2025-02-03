@@ -1,0 +1,39 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvSubjectName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:text="Subject Name  "/>
+
+    <TextView
+        android:id="@+id/tvTotalClasses"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingLeft="10dp"
+        android:text="T:0"/>
+
+    <TextView
+        android:id="@+id/tvAttendedClasses"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingLeft="10dp"
+        android:text="A:0"/>
+
+    <TextView
+        android:id="@+id/tvAttendancePercentage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingLeft="10dp"
+        android:text= "P:0.0%"/>
+</LinearLayout>
