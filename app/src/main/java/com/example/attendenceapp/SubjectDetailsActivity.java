@@ -1,5 +1,5 @@
 package com.example.attendenceapp;
-
+//this class is for the perticular subject in the teacher
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -68,7 +68,7 @@ public class SubjectDetailsActivity extends AppCompatActivity {
         // Get the subject name and ID from the intent
         String subjectName = getIntent().getStringExtra("subjectName");
         subjectId = getIntent().getStringExtra("subjectCode");
-
+        Toast.makeText(SubjectDetailsActivity.this, "subject id is "+subjectId.toString(), Toast.LENGTH_SHORT).show();
         // Set the subject name as the title
         if (subjectName != null) {
             textViewSubjectTitle.setText(subjectName);

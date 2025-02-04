@@ -1,4 +1,5 @@
 package com.example.attendenceapp;
+//subject adapter in the teacher activity to make the subject onclick and the move to specific subject
 
 import android.content.Context;
 import android.content.Intent;

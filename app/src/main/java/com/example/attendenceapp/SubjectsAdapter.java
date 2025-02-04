@@ -1,5 +1,5 @@
 package com.example.attendenceapp;
-
+//subjects adapter for attendence of subject in the student
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,7 +31,7 @@ public class SubjectsAdapter extends RecyclerView.Adapter<SubjectsAdapter.Subjec
         holder.tvSubjectName.setText(subject.getSubjectName());
         holder.tvTotalClasses.setText("A:"+String.valueOf(subject.getAttendedClasses()));
         holder.tvAttendedClasses.setText("T:"+String.valueOf(subject.getTotalClasses()));
-        holder.tvAttendancePercentage.setText(String.format(Locale.getDefault(), "%.2f%%", subject.getAttendancePercentage()));
+        holder.tvAttendancePercentage.setText("p:"+String.format(Locale.getDefault(), "%.2f%%", subject.getAttendancePercentage()));
     }
 
     @Override

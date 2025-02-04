@@ -14,7 +14,7 @@
         android:id="@+id/tvStudentName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Rohan Nayak"
+        android:text="name"
         android:textSize="24sp"
         android:textStyle="bold"
         android:paddingBottom="8dp" />
@@ -23,7 +23,7 @@
         android:id="@+id/tvStudentUSN"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="NNM22CC050"
+        android:text="usn"
         android:textSize="18sp"
         android:paddingBottom="16dp" />
 
@@ -51,7 +51,7 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewSubjects"
-        android:layout_width="147dp"
+        android:layout_width="306dp"
         android:layout_height="291dp" />
 
 

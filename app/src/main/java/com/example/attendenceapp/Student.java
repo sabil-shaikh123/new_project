@@ -376,8 +376,8 @@ public class Student extends AppCompatActivity {
                                 }
                             }
 
-                            double attendancePercentage = (totalClasses > 0) ? ((double) attendedClasses / totalClasses) * 100 : 0;
-                            SubjectDetails subjectDetails = new SubjectDetails(subjectName, attendedClasses, totalClasses, attendancePercentage);
+
+                            SubjectDetails subjectDetails = new SubjectDetails(subjectName, attendedClasses, totalClasses);
                             subjectDetailsList.add(subjectDetails);
                             subjectsAdapter.notifyDataSetChanged();
 

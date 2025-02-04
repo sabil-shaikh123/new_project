@@ -7,7 +7,7 @@ public class SubjectDetails {
     private int totalClasses;
     private double attendancePercentage;
 
-    public SubjectDetails(String subjectName, int attendedClasses, int totalClasses, double attendancePercentage) {
+    public SubjectDetails(String subjectName, int attendedClasses, int totalClasses) {
         this.subjectName = subjectName;
         this.attendedClasses = attendedClasses;
         this.totalClasses = totalClasses;
@@ -28,6 +28,10 @@ public class SubjectDetails {
     }
 
     public double getAttendancePercentage() {
-        return attendancePercentage;
+        if (totalClasses == 0 || attendedClasses == 0) {
+            return 0.0; // Avoid division by zero
+        }
+        return (attendedClasses / (double) totalClasses) * 100;
     }
+
 }
